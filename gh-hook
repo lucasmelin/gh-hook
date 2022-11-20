@@ -34,8 +34,43 @@ createWebhook(){
     INSECURE_SSL=$(gum choose "0" "1")
     echo "Webhook active"
     ACTIVE=$(gum choose true false)
-    jq -n --arg EVENTS "$EVENTS" --arg WEBHOOK_URL "$WEBHOOK_URL" --arg SECRET "$SECRET" --arg CONTENT_TYPE "$CONTENT_TYPE" --arg INSECURE_SSL "$INSECURE_SSL" --argjson ACTIVE "$ACTIVE" '{"name":"web","active":$ACTIVE,"events":$EVENTS | split("\n"),"config":{"url": $WEBHOOK_URL,"content_type":$CONTENT_TYPE,"insecure_ssl":$INSECURE_SSL,"secret":$SECRET}}' | gh api repos/$REPO/hooks --jq '.id' --input -
+    HOOK_ID=$(jq -n --arg EVENTS "$EVENTS" --arg WEBHOOK_URL "$WEBHOOK_URL" --arg SECRET "$SECRET" --arg CONTENT_TYPE "$CONTENT_TYPE" --arg INSECURE_SSL "$INSECURE_SSL" --argjson ACTIVE "$ACTIVE" '{"name":"web","active":$ACTIVE,"events":$EVENTS | split("\n"),"config":{"url": $WEBHOOK_URL,"content_type":$CONTENT_TYPE,"insecure_ssl":$INSECURE_SSL,"secret":$SECRET}}' | gh api repos/"$REPO"/hooks --jq '.id' --input -)
+    echo "Webhook $HOOK_ID created for $REPO"
+}
+
+deleteWebhooks(){
+    REPO=$(gh repo view --json nameWithOwner -q ".nameWithOwner")
+    WEBHOOKS=$(gh api repos/"$REPO"/hooks --jq '.[] | {id,url:.config.url}')
+    if [ -z "${WEBHOOKS}" ]; then echo "No webhooks to delete" && return; fi
+    echo "Which webhooks would you like to delete?"
+    CHOSEN_HOOKS=$(echo "$WEBHOOKS"| gum choose --no-limit)
+    # Create an array of all hooks to delete
+    unset DELHOOKS
+    while read -r line; do
+        DELHOOKS+=("$line")
+    done <<< "$CHOSEN_HOOKS"
+    # Delete each hook in the array
+    for i in "${DELHOOKS[@]}"; do
+       HOOK_ID=$(jq -n --argjson TODELETE "$i" '$TODELETE.id')
+       gum confirm "Deleting hook $HOOK_ID from $REPO, are you sure?" && gh api --method DELETE -H "Accept: application/vnd.github+json" repos/"$REPO"/hooks/"$HOOK_ID"
+    done
+    # Reset the array just to be safe
+    unset DELHOOKS
+}
+
+menu(){
+    echo "What would you like to do?"
+    choice=$(gum choose "Create webhook" "Delete webhook")
+    case $choice in
+        "Create webhook")
+            createWebhook
+            ;;
+        "Delete webhook")
+            deleteWebhooks
+            ;;
+        *) echo "invalid option $choice";;
+    esac
 }
 
 # Call the function
-createWebhook
+menu
