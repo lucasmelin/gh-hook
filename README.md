@@ -4,6 +4,7 @@
 
 ## ✨ Features
 - Create a repository webhook
+- Delete one or more repository webhooks
 
 ## 📦️ Installation
 
