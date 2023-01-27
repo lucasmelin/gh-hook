@@ -12,13 +12,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type Hook struct {
-	Id     int      `json:"id,omitempty"`
-	Active bool     `json:"active,omitempty"`
-	Events []string `json:"events,omitempty"`
-	Config HookConfig
-}
-
 func init() {
 	deleteCmd.Flags().StringVarP(&repoOverride, "repo", "", "", "Specify a repository. If omitted, uses current repository")
 	rootCmd.AddCommand(deleteCmd)

@@ -19,11 +19,12 @@ type Event struct {
 	Name string `json:"name"`
 }
 
-type HookOpts struct {
-	Name   string     `json:"name,omitempty"`
-	Active bool       `json:"active,omitempty"`
-	Events []string   `json:"events,omitempty"`
-	Config HookConfig `json:"config,omitempty"`
+type Hook struct {
+	Id     int      `json:"id,omitempty"`
+	Name   string   `json:"name,omitempty"`
+	Active bool     `json:"active,omitempty"`
+	Events []string `json:"events,omitempty"`
+	Config HookConfig
 }
 
 type HookConfig struct {
@@ -165,7 +166,7 @@ var createCmd = &cobra.Command{
 		if err != nil {
 			log.Fatal(err)
 		}
-		value := HookOpts{
+		value := Hook{
 			Name:   "web",
 			Active: active,
 			Events: hookEvents,
