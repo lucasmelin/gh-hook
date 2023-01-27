@@ -12,18 +12,18 @@ import (
 )
 
 func init() {
-	deleteCmd.Flags().StringVarP(&repoOverride, "repo", "", "", "Specify a repository. If omitted, uses current repository")
 	rootCmd.AddCommand(deleteCmd)
 }
 
 var deleteCmd = &cobra.Command{
 	Use:   "delete",
-	Short: "Delete a GitHub webhook",
+	Short: "Delete repository webhooks.",
 	Long:  ``,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var repo repository.Repository
 		var err error
 
+		repoOverride, _ := cmd.Flags().GetString("repo")
 		if repoOverride != "" {
 			repo, err = repository.Parse(repoOverride)
 		} else {

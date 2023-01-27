@@ -12,18 +12,18 @@ import (
 )
 
 func init() {
-	listCmd.Flags().StringVarP(&repoOverride, "repo", "", "", "Specify a repository. If omitted, uses current repository")
 	rootCmd.AddCommand(listCmd)
 }
 
 var listCmd = &cobra.Command{
 	Use:   "list",
-	Short: "List all GitHub webhooks for a repository",
+	Short: "List all repository webhooks.",
 	Long:  ``,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var repo repository.Repository
 		var err error
 
+		repoOverride, _ := cmd.Flags().GetString("repo")
 		if repoOverride != "" {
 			repo, err = repository.Parse(repoOverride)
 		} else {

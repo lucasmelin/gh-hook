@@ -93,24 +93,21 @@ var knownEvents = []string{
 	"workflow_run",
 }
 
-var repoOverride string
-var refreshEvents bool
-
 func init() {
-	createCmd.Flags().StringVarP(&repoOverride, "repo", "", "", "Specify a repository. If omitted, uses current repository")
-	createCmd.Flags().BoolVarP(&refreshEvents, "refresh-events", "", false, "Download the list of events from octokit.github.io/webhooks/ By default, will use a hardcoded list of known events.")
+	createCmd.Flags().Bool("refresh-events", false, "Download the list of events from octokit.github.io/webhooks/. By default, a hardcoded list of known events will be used.")
 	rootCmd.AddCommand(createCmd)
 }
 
 var createCmd = &cobra.Command{
 	Use:          "create",
-	Short:        "Create a new GitHub webhook",
+	Short:        "Create a new repository webhook.",
 	Long:         ``,
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var repo repository.Repository
 		var err error
 
+		repoOverride, _ := cmd.Flags().GetString("repo")
 		if repoOverride != "" {
 			repo, err = repository.Parse(repoOverride)
 		} else {
@@ -126,6 +123,7 @@ var createCmd = &cobra.Command{
 			return fmt.Errorf("error entering webhook URL: %w\n", err)
 		}
 
+		refreshEvents, _ := cmd.Flags().GetBool("refresh-events")
 		events, err := getEvents(refreshEvents)
 		if err != nil {
 			return fmt.Errorf("error getting events: %w\n", err)

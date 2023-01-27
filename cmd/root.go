@@ -8,7 +8,7 @@ import (
 
 var rootCmd = &cobra.Command{
 	Use:   "hook",
-	Short: "Hook manages your GitHub hooks",
+	Short: "Hook makes it easy to manage your repository webhooks.",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
 		_ = cmd.Help()
@@ -16,6 +16,7 @@ var rootCmd = &cobra.Command{
 }
 
 func Execute() {
+	rootCmd.PersistentFlags().String("repo", "", "Specify a repository. If omitted, uses the current repository.")
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}
