@@ -11,7 +11,7 @@ var rootCmd = &cobra.Command{
 	Short: "Hook manages your GitHub hooks",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		cmd.Help()
+		_ = cmd.Help()
 	},
 }
 

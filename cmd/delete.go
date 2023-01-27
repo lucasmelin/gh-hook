@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/cli/go-gh"
@@ -34,7 +33,10 @@ var deleteCmd = &cobra.Command{
 			return fmt.Errorf("could not determine the repo to use: %w\n", err)
 		}
 
-		response := getWebhooks(repo)
+		response, err := getWebhooks(repo)
+		if err != nil {
+			return fmt.Errorf("could not get webhooks: %w\n", err)
+		}
 		choices := formatHookChoices(response)
 
 		hooksToDelete, err := tui.Choose("Which webhooks would you like to delete?", choices, 0)
@@ -45,25 +47,25 @@ var deleteCmd = &cobra.Command{
 			deleteIds = append(deleteIds, id)
 		}
 
-		deleteHooks(repo, deleteIds)
-		return nil
+		return deleteHooks(repo, deleteIds)
 	},
 }
 
-func deleteHooks(repo repository.Repository, deleteIds []string) {
+func deleteHooks(repo repository.Repository, deleteIds []string) error {
 	hookOpts := api.ClientOptions{
 		Host: repo.Host(),
 	}
 	client, err := gh.RESTClient(&hookOpts)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	for _, hookId := range deleteIds {
 		fmt.Printf("Deleting %s\n", hookId)
 		apiUrl := fmt.Sprintf("repos/%s/%s/hooks/%s", repo.Owner(), repo.Name(), hookId)
 		err = client.Delete(apiUrl, nil)
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 	}
+	return nil
 }

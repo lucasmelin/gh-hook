@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 
 	"github.com/cli/go-gh"
@@ -127,7 +126,10 @@ var createCmd = &cobra.Command{
 			return fmt.Errorf("error entering webhook URL: %w\n", err)
 		}
 
-		events := getEvents(refreshEvents)
+		events, err := getEvents(refreshEvents)
+		if err != nil {
+			return fmt.Errorf("error getting events: %w\n", err)
+		}
 		hookEvents, err := tui.Choose("Events to receive", events, 0)
 		if err != nil {
 			return fmt.Errorf("error choosing events: %w\n", err)
@@ -164,7 +166,7 @@ var createCmd = &cobra.Command{
 		}
 		client, err := gh.RESTClient(&hookOpts)
 		if err != nil {
-			log.Fatal(err)
+			return fmt.Errorf("error creating REST client: %w\n", err)
 		}
 		value := Hook{
 			Name:   "web",
@@ -179,45 +181,45 @@ var createCmd = &cobra.Command{
 		}
 		jsonValue, err := json.Marshal(value)
 		if err != nil {
-			log.Fatal(err)
+			return fmt.Errorf("error converting resoponses to JSON: %w\n", err)
 		}
 		apiUrl := fmt.Sprintf("repos/%s/%s/hooks", repo.Owner(), repo.Name())
 		err = client.Post(apiUrl, bytes.NewBuffer(jsonValue), nil)
 		if err != nil {
-			log.Fatal(err)
+			return fmt.Errorf("error creating new webhook: %w\n", err)
 		}
 		fmt.Println("successfully created hook")
 		return nil
 	},
 }
 
-func getEvents(refresh bool) []string {
+func getEvents(refresh bool) ([]string, error) {
 	if !refresh {
-		return knownEvents
+		return knownEvents, nil
 	}
 	client := &http.Client{}
 	assetURL := "https://octokit.github.io/webhooks/payload-examples/api.github.com/index.json"
 	req, err := http.NewRequest("GET", assetURL, nil)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 	req.Header.Add("Accept", "application/json")
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 	defer resp.Body.Close()
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 	var events []Event
 	if err := json.Unmarshal(body, &events); err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 	var eventNames []string
 	for _, e := range events {
 		eventNames = append(eventNames, e.Name)
 	}
-	return eventNames
+	return eventNames, nil
 }

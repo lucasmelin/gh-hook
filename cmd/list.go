@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
 
@@ -34,7 +33,10 @@ var listCmd = &cobra.Command{
 			return fmt.Errorf("could not determine the repo to use: %w\n", err)
 		}
 
-		currentHooks := getWebhooks(repo)
+		currentHooks, err := getWebhooks(repo)
+		if err != nil {
+			return fmt.Errorf("could not get webhooks: %w\n", err)
+		}
 		choices := formatHookChoices(currentHooks)
 		if len(choices) == 0 {
 			fmt.Printf("%s/%s has no webhooks\n", repo.Owner(), repo.Name())
@@ -69,19 +71,19 @@ func formatHookChoices(currentHooks []Hook) []string {
 	return choices
 }
 
-func getWebhooks(repo repository.Repository) []Hook {
+func getWebhooks(repo repository.Repository) ([]Hook, error) {
 	hookOpts := api.ClientOptions{
 		Host: repo.Host(),
 	}
 	client, err := gh.RESTClient(&hookOpts)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 	response := []Hook{}
 	apiUrl := fmt.Sprintf("repos/%s/%s/hooks", repo.Owner(), repo.Name())
 	err = client.Get(apiUrl, &response)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
-	return response
+	return response, nil
 }
