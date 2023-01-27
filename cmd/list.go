@@ -9,25 +9,17 @@ import (
 	"github.com/cli/go-gh"
 	"github.com/cli/go-gh/pkg/api"
 	"github.com/cli/go-gh/pkg/repository"
-	"github.com/lucasmelin/gh-hook/tui"
 	"github.com/spf13/cobra"
 )
 
-type Hook struct {
-	Id     int      `json:"id,omitempty"`
-	Active bool     `json:"active,omitempty"`
-	Events []string `json:"events,omitempty"`
-	Config HookConfig
-}
-
 func init() {
-	deleteCmd.Flags().StringVarP(&repoOverride, "repo", "", "", "Specify a repository. If omitted, uses current repository")
-	rootCmd.AddCommand(deleteCmd)
+	listCmd.Flags().StringVarP(&repoOverride, "repo", "", "", "Specify a repository. If omitted, uses current repository")
+	rootCmd.AddCommand(listCmd)
 }
 
-var deleteCmd = &cobra.Command{
-	Use:   "delete",
-	Short: "Delete a GitHub webhook",
+var listCmd = &cobra.Command{
+	Use:   "list",
+	Short: "List all GitHub webhooks for a repository",
 	Long:  ``,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var repo repository.Repository
@@ -72,23 +64,14 @@ var deleteCmd = &cobra.Command{
 			displayText += strconv.Itoa(choice.Id) + " - " + choice.Config.Url + " " + stringEvents
 			choices = append(choices, displayText)
 		}
-
-		hooksToDelete, err := tui.Choose("Which webhooks would you like to delete?", choices, 0)
-		var deleteIds []string
-		for _, hook := range hooksToDelete {
-			_, withoutPrefix, _ := strings.Cut(hook, " ")
-			id, _, _ := strings.Cut(withoutPrefix, " ")
-			deleteIds = append(deleteIds, id)
+		if len(choices) == 0 {
+			fmt.Printf("%s/%s has no webhooks\n", repo.Owner(), repo.Name())
+			return nil
+		}
+		for _, hook := range choices {
+			fmt.Println(hook)
 		}
 
-		for _, hookId := range deleteIds {
-			fmt.Printf("Deleting %s\n", hookId)
-			apiUrl := fmt.Sprintf("repos/%s/%s/hooks/%s", repo.Owner(), repo.Name(), hookId)
-			err = client.Delete(apiUrl, nil)
-			if err != nil {
-				log.Fatal(err)
-			}
-		}
 		return nil
 	},
 }

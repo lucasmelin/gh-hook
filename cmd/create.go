@@ -7,7 +7,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/cli/go-gh"
 	"github.com/cli/go-gh/pkg/api"
@@ -20,10 +19,86 @@ type Event struct {
 	Name string `json:"name"`
 }
 
+type HookOpts struct {
+	Name   string     `json:"name,omitempty"`
+	Active bool       `json:"active,omitempty"`
+	Events []string   `json:"events,omitempty"`
+	Config HookConfig `json:"config,omitempty"`
+}
+
+type HookConfig struct {
+	Url         string `json:"url,omitempty"`
+	ContentType string `json:"content_type,omitempty"`
+	InsecureSSL string `json:"insecure_ssl,omitempty"`
+	Secret      string `json:"secret,omitempty"`
+}
+
+var knownEvents = []string{
+	"branch_protection_rule",
+	"check_run",
+	"check_suite",
+	"code_scanning_alert",
+	"commit_comment",
+	"create",
+	"delete",
+	"dependabot_alert",
+	"deploy_key",
+	"deployment",
+	"deployment_status",
+	"discussion",
+	"discussion_comment",
+	"fork",
+	"github_app_authorization",
+	"gollum",
+	"installation",
+	"installation_repositories",
+	"issue_comment",
+	"issues",
+	"label",
+	"marketplace_purchase",
+	"member",
+	"membership",
+	"merge_group",
+	"meta",
+	"milestone",
+	"organization",
+	"org_block",
+	"package",
+	"page_build",
+	"ping",
+	"project",
+	"project_card",
+	"project_column",
+	"projects_v2_item",
+	"public",
+	"pull_request",
+	"pull_request_review",
+	"pull_request_review_comment",
+	"pull_request_review_thread",
+	"push",
+	"release",
+	"repository_dispatch",
+	"repository",
+	"repository_import",
+	"repository_vulnerability_alert",
+	"security_advisory",
+	"sponsorship",
+	"star",
+	"status",
+	"team",
+	"team_add",
+	"watch",
+	"workflow_dispatch",
+	"workflow_job",
+	"workflow_run",
+}
+
 var repoOverride string
+var refreshEvents bool
 
 func init() {
 	createCmd.Flags().StringVarP(&repoOverride, "repo", "", "", "Specify a repository. If omitted, uses current repository")
+	createCmd.Flags().BoolVarP(&refreshEvents, "refresh-events", "", false, "Download the list of events from octokit.github.io/webhooks/ By default, will use a hardcoded list of known events.")
 	rootCmd.AddCommand(createCmd)
 }
 
@@ -51,7 +126,7 @@ var createCmd = &cobra.Command{
 			return fmt.Errorf("error entering webhook URL: %w\n", err)
 		}
 
-		events := getEvents()
+		events := getEvents(refreshEvents)
 		hookEvents, err := tui.Choose("Events to receive", events, 0)
 		if err != nil {
 			return fmt.Errorf("error choosing events: %w\n", err)
@@ -85,7 +160,6 @@ var createCmd = &cobra.Command{
 
 		hookOpts := api.ClientOptions{
 			Host: repo.Host(),
-			Log:  os.Stdout,
 		}
 		client, err := gh.RESTClient(&hookOpts)
 		if err != nil {
@@ -116,7 +190,10 @@ var createCmd = &cobra.Command{
 	},
 }
 
-func getEvents() []string {
+func getEvents(refresh bool) []string {
+	if !refresh {
+		return knownEvents
+	}
 	client := &http.Client{}
 	assetURL := "https://octokit.github.io/webhooks/payload-examples/api.github.com/index.json"
 	req, err := http.NewRequest("GET", assetURL, nil)
@@ -142,18 +219,4 @@ func getEvents() []string {
 		eventNames = append(eventNames, e.Name)
 	}
 	return eventNames
-}
-
-type HookOpts struct {
-	Name   string     `json:"name,omitempty"`
-	Active bool       `json:"active,omitempty"`
-	Events []string   `json:"events,omitempty"`
-	Config HookConfig `json:"config,omitempty"`
-}
-
-type HookConfig struct {
-	Url         string `json:"url,omitempty"`
-	ContentType string `json:"content_type,omitempty"`
-	InsecureSSL string `json:"insecure_ssl,omitempty"`
-	Secret      string `json:"secret,omitempty"`
 }
