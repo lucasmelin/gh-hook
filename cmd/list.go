@@ -34,36 +34,8 @@ var listCmd = &cobra.Command{
 			return fmt.Errorf("could not determine the repo to use: %w\n", err)
 		}
 
-		hookOpts := api.ClientOptions{
-			Host: repo.Host(),
-		}
-		client, err := gh.RESTClient(&hookOpts)
-		if err != nil {
-			log.Fatal(err)
-		}
-		response := []Hook{}
-		apiUrl := fmt.Sprintf("repos/%s/%s/hooks", repo.Owner(), repo.Name())
-		err = client.Get(apiUrl, &response)
-		if err != nil {
-			log.Fatal(err)
-		}
-		var choices []string
-		for _, choice := range response {
-			var displayText string
-			if choice.Active {
-				displayText += "✓ "
-			} else {
-				displayText += "• "
-			}
-			stringEvents := strings.Join(choice.Events, ", ")
-			if len(stringEvents) > 23 {
-				stringEvents = stringEvents[:23] + "…"
-			}
-			stringEvents = "(" + stringEvents + ")"
-
-			displayText += strconv.Itoa(choice.Id) + " - " + choice.Config.Url + " " + stringEvents
-			choices = append(choices, displayText)
-		}
+		currentHooks := getWebhooks(repo)
+		choices := formatHookChoices(currentHooks)
 		if len(choices) == 0 {
 			fmt.Printf("%s/%s has no webhooks\n", repo.Owner(), repo.Name())
 			return nil
@@ -74,4 +46,42 @@ var listCmd = &cobra.Command{
 
 		return nil
 	},
+}
+
+func formatHookChoices(currentHooks []Hook) []string {
+	var choices []string
+	for _, choice := range currentHooks {
+		var displayText string
+		if choice.Active {
+			displayText += "✓ "
+		} else {
+			displayText += "• "
+		}
+		stringEvents := strings.Join(choice.Events, ", ")
+		if len(stringEvents) > 23 {
+			stringEvents = stringEvents[:23] + "…"
+		}
+		stringEvents = "(" + stringEvents + ")"
+
+		displayText += strconv.Itoa(choice.Id) + " - " + choice.Config.Url + " " + stringEvents
+		choices = append(choices, displayText)
+	}
+	return choices
+}
+
+func getWebhooks(repo repository.Repository) []Hook {
+	hookOpts := api.ClientOptions{
+		Host: repo.Host(),
+	}
+	client, err := gh.RESTClient(&hookOpts)
+	if err != nil {
+		log.Fatal(err)
+	}
+	response := []Hook{}
+	apiUrl := fmt.Sprintf("repos/%s/%s/hooks", repo.Owner(), repo.Name())
+	err = client.Get(apiUrl, &response)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return response
 }
