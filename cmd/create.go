@@ -138,10 +138,14 @@ var createCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("error entering webhook secret: %w\n", err)
 		}
-		contentType, err := tui.Choose("Content Type", []string{"json", "form"}, 1)
+		contentTypeChoice, err := tui.Choose("Content Type", []string{"json", "form"}, 1)
 		if err != nil {
 			return fmt.Errorf("error choosing content type: %w\n", err)
 		}
+		if len(contentTypeChoice) == 0 {
+			return fmt.Errorf("no content type selected")
+		}
+		contentType := contentTypeChoice[0]
 		sslChoice, err := tui.Choose("Insecure SSL", []string{"true", "false"}, 1)
 		if err != nil {
 			return fmt.Errorf("error choosing insecure SSL option: %w\n", err)
@@ -161,36 +165,45 @@ var createCmd = &cobra.Command{
 			active = true
 		}
 
-		hookOpts := api.ClientOptions{
-			Host: repo.Host(),
-		}
-		client, err := gh.RESTClient(&hookOpts)
-		if err != nil {
-			return fmt.Errorf("error creating REST client: %w\n", err)
-		}
 		value := Hook{
 			Name:   "web",
 			Active: active,
 			Events: hookEvents,
 			Config: HookConfig{
 				Url:         hookUrl,
-				ContentType: contentType[0],
+				ContentType: contentType,
 				InsecureSSL: ssl,
 				Secret:      secret,
 			},
 		}
-		jsonValue, err := json.Marshal(value)
-		if err != nil {
-			return fmt.Errorf("error converting resoponses to JSON: %w\n", err)
-		}
-		apiUrl := fmt.Sprintf("repos/%s/%s/hooks", repo.Owner(), repo.Name())
-		err = client.Post(apiUrl, bytes.NewBuffer(jsonValue), nil)
-		if err != nil {
-			return fmt.Errorf("error creating new webhook: %w\n", err)
+
+		if err := createHook(repo, value); err != nil {
+			return err
 		}
 		fmt.Println("successfully created hook")
 		return nil
 	},
+}
+
+func createHook(repo repository.Repository, data Hook) error {
+	hookOpts := api.ClientOptions{
+		Host: repo.Host(),
+	}
+	client, err := gh.RESTClient(&hookOpts)
+	if err != nil {
+		return fmt.Errorf("error creating REST client: %w\n", err)
+	}
+
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		return fmt.Errorf("error converting resoponses to JSON: %w\n", err)
+	}
+	apiUrl := fmt.Sprintf("repos/%s/%s/hooks", repo.Owner(), repo.Name())
+	err = client.Post(apiUrl, bytes.NewBuffer(jsonData), nil)
+	if err != nil {
+		return fmt.Errorf("error creating new webhook: %w\n", err)
+	}
+	return nil
 }
 
 func getEvents(refresh bool) ([]string, error) {
