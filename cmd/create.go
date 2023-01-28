@@ -33,6 +33,8 @@ type HookConfig struct {
 	Secret      string `json:"secret,omitempty"`
 }
 
+// Some events are not available for repositories.
+// See: https://docs.github.com/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#installation_repositories
 var knownEvents = []string{
 	"branch_protection_rule",
 	"check_run",
@@ -48,28 +50,28 @@ var knownEvents = []string{
 	"discussion",
 	"discussion_comment",
 	"fork",
-	"github_app_authorization",
+	// "github_app_authorization", Not available for repositories.
 	"gollum",
-	"installation",
-	"installation_repositories",
+	// "installation", Not available for repositories.
+	// "installation_repositories", Not available for repositories.
 	"issue_comment",
 	"issues",
 	"label",
-	"marketplace_purchase",
+	// "marketplace_purchase", Not available for repositories.
 	"member",
-	"membership",
-	"merge_group",
+	// "membership", Not available for repositories.
+	// "merge_group", Not available for repositories.
 	"meta",
 	"milestone",
-	"organization",
-	"org_block",
+	// "organization", Not available for repositories.
+	// "org_block", Not available for repositories.
 	"package",
 	"page_build",
 	"ping",
 	"project",
 	"project_card",
 	"project_column",
-	"projects_v2_item",
+	// "projects_v2_item", Not available for repositories.
 	"public",
 	"pull_request",
 	"pull_request_review",
@@ -77,18 +79,18 @@ var knownEvents = []string{
 	"pull_request_review_thread",
 	"push",
 	"release",
-	"repository_dispatch",
+	// "repository_dispatch", Not available for repositories.
 	"repository",
 	"repository_import",
 	"repository_vulnerability_alert",
-	"security_advisory",
-	"sponsorship",
+	// "security_advisory", Not available for repositories.
+	// "sponsorship", Not available for repositories.
 	"star",
 	"status",
-	"team",
+	// "team", Not available for repositories.
 	"team_add",
 	"watch",
-	"workflow_dispatch",
+	// "workflow_dispatch", Not available for repositories.
 	"workflow_job",
 	"workflow_run",
 }
