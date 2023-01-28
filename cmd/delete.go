@@ -38,6 +38,10 @@ var deleteCmd = &cobra.Command{
 			return fmt.Errorf("could not get webhooks: %w\n", err)
 		}
 		choices := formatHookChoices(response)
+		if len(choices) == 0 {
+			fmt.Printf("%s/%s has no webhooks\n", repo.Owner(), repo.Name())
+			return nil
+		}
 
 		hooksToDelete, err := tui.Choose("Which webhooks would you like to delete?", choices, 0)
 		var deleteIds []string
