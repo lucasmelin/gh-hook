@@ -19,11 +19,11 @@ type Event struct {
 }
 
 type Hook struct {
-	Id     int      `json:"id,omitempty"`
-	Name   string   `json:"name,omitempty"`
-	Active bool     `json:"active,omitempty"`
-	Events []string `json:"events,omitempty"`
-	Config HookConfig
+	Id     int        `json:"id,omitempty"`
+	Name   string     `json:"name,omitempty"`
+	Active bool       `json:"active,omitempty"`
+	Events []string   `json:"events,omitempty"`
+	Config HookConfig `json:"config,omitempty"`
 }
 
 type HookConfig struct {
