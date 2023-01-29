@@ -36,6 +36,12 @@ var deleteCmd = &cobra.Command{
 		}
 
 		hooksToDelete, err := tui.Choose("Which webhooks would you like to delete?", choices, 0)
+		if err != nil {
+			return fmt.Errorf("could not choose webhooks: %w", err)
+		}
+		if len(hooksToDelete) == 0 {
+			fmt.Printf("No webhooks were selected for deletion\n")
+		}
 		var deleteIds []string
 		for _, hook := range hooksToDelete {
 			_, withoutPrefix, _ := strings.Cut(hook, " ")
