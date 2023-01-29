@@ -6,6 +6,8 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/charmbracelet/bubbles/help"
+	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/paginator"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -16,6 +18,78 @@ var (
 	subduedStyle     = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#847A85", Dark: "#979797"})
 	verySubduedStyle = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#DDDADA", Dark: "#3C3C3C"})
 )
+
+// keyMap defines a set of keybindings. To work for help it must satisfy
+// key.Map. It could also very easily be a map[string]key.Binding.
+type keyMap struct {
+	Up          key.Binding
+	Down        key.Binding
+	Left        key.Binding
+	Right       key.Binding
+	Enter       key.Binding
+	Select      key.Binding
+	SelectAll   key.Binding
+	DeselectAll key.Binding
+	Help        key.Binding
+	Quit        key.Binding
+}
+
+// ShortHelp returns keybindings to be shown in the mini help view. It's part
+// of the key.Map interface.
+func (k keyMap) ShortHelp() []key.Binding {
+	return []key.Binding{k.Help, k.Quit}
+}
+
+// FullHelp returns keybindings for the expanded help view. It's part of the
+// key.Map interface.
+func (k keyMap) FullHelp() [][]key.Binding {
+	return [][]key.Binding{
+		{k.Up, k.Down, k.Left, k.Right},
+		{k.Select, k.SelectAll, k.DeselectAll},
+		{k.Help, k.Quit},
+	}
+}
+
+var keys = keyMap{
+	Up: key.NewBinding(
+		key.WithKeys("up", "k"),
+		key.WithHelp("↑/k", "move up"),
+	),
+	Down: key.NewBinding(
+		key.WithKeys("down", "j"),
+		key.WithHelp("↓/j", "move down"),
+	),
+	Left: key.NewBinding(
+		key.WithKeys("left", "h"),
+		key.WithHelp("←/h", "move left"),
+	),
+	Right: key.NewBinding(
+		key.WithKeys("right", "l"),
+		key.WithHelp("→/l", "move right"),
+	),
+	Enter: key.NewBinding(
+		key.WithKeys("enter"),
+		key.WithHelp("enter", "continue")),
+	Select: key.NewBinding(
+		key.WithKeys(" ", "tab", "x"),
+		key.WithHelp("space/tab/x", "select")),
+	SelectAll: key.NewBinding(
+		key.WithKeys("a"),
+		key.WithHelp("a", "select all"),
+	),
+	DeselectAll: key.NewBinding(
+		key.WithKeys("A"),
+		key.WithHelp("A", "deselect all"),
+	),
+	Help: key.NewBinding(
+		key.WithKeys("?"),
+		key.WithHelp("?", "toggle help"),
+	),
+	Quit: key.NewBinding(
+		key.WithKeys("q", "esc", "ctrl+c"),
+		key.WithHelp("q", "quit"),
+	),
+}
 
 func Choose(title string, options []string, limit int) ([]string, error) {
 	if limit == 0 {
@@ -32,12 +106,6 @@ func Choose(title string, options []string, limit int) ([]string, error) {
 	pager.ActiveDot = subduedStyle.Render("•")
 	pager.InactiveDot = verySubduedStyle.Render("•")
 
-	// Disable Keybindings since we will control it ourselves.
-	pager.UseHLKeys = false
-	pager.UseLeftRightKeys = false
-	pager.UseJKKeys = false
-	pager.UsePgUpPgDownKeys = false
-
 	for i, option := range options {
 		items[i] = item{text: option, selected: false, order: i}
 	}
@@ -53,6 +121,8 @@ func Choose(title string, options []string, limit int) ([]string, error) {
 		cursorPrefix:      "",
 		items:             items,
 		limit:             limit,
+		keys:              keys,
+		help:              help.New(),
 		paginator:         pager,
 		cursorStyle:       lipgloss.NewStyle().Foreground(lipgloss.Color("212")),
 		selectedItemStyle: lipgloss.NewStyle().Foreground(lipgloss.Color("212")),
@@ -104,6 +174,8 @@ type chooseModel struct {
 	limit            int
 	numSelected      int
 	currentOrder     int
+	keys             keyMap
+	help             help.Model
 	paginator        paginator.Model
 	cancelled        bool
 
@@ -122,8 +194,8 @@ func (m chooseModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.KeyMsg:
 		start, end := m.paginator.GetSliceBounds(len(m.items))
-		switch keypress := msg.String(); keypress {
-		case "down", "j", "ctrl+j", "ctrl+n":
+		switch {
+		case key.Matches(msg, m.keys.Down):
 			m.index++
 			if m.index >= len(m.items) {
 				m.index = 0
@@ -132,7 +204,7 @@ func (m chooseModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.index >= end {
 				m.paginator.NextPage()
 			}
-		case "up", "k", "ctrl+k", "ctrl+p":
+		case key.Matches(msg, m.keys.Up):
 			m.index--
 			if m.index < 0 {
 				m.index = len(m.items) - 1
@@ -141,19 +213,13 @@ func (m chooseModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.index < start {
 				m.paginator.PrevPage()
 			}
-		case "right", "l", "ctrl+f":
+		case key.Matches(msg, m.keys.Right):
 			m.index = clamp(m.index+m.height, 0, len(m.items)-1)
 			m.paginator.NextPage()
-		case "left", "h", "ctrl+b":
+		case key.Matches(msg, m.keys.Left):
 			m.index = clamp(m.index-m.height, 0, len(m.items)-1)
 			m.paginator.PrevPage()
-		case "G":
-			m.index = len(m.items) - 1
-			m.paginator.Page = m.paginator.TotalPages - 1
-		case "g":
-			m.index = 0
-			m.paginator.Page = 0
-		case "a":
+		case key.Matches(msg, m.keys.SelectAll):
 			if m.limit <= 1 {
 				break
 			}
@@ -169,7 +235,7 @@ func (m chooseModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.numSelected++
 				m.currentOrder++
 			}
-		case "A":
+		case key.Matches(msg, m.keys.DeselectAll):
 			if m.limit <= 1 {
 				break
 			}
@@ -179,11 +245,11 @@ func (m chooseModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			m.numSelected = 0
 			m.currentOrder = 0
-		case "ctrl+c", "esc":
+		case key.Matches(msg, m.keys.Quit):
 			m.cancelled = true
 			m.quitting = true
 			return m, tea.Quit
-		case " ", "tab", "x":
+		case key.Matches(msg, m.keys.Select):
 			if m.limit == 1 {
 				break // no op
 			}
@@ -197,7 +263,7 @@ func (m chooseModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.numSelected++
 				m.currentOrder++
 			}
-		case "enter":
+		case key.Matches(msg, m.keys.Enter):
 			m.quitting = true
 			// If the user hasn't selected any items in a multi-select.
 			// Then we select the item that they have pressed enter on. If they
@@ -206,6 +272,8 @@ func (m chooseModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.items[m.index].selected = true
 			}
 			return m, tea.Quit
+		case key.Matches(msg, m.keys.Help):
+			m.help.ShowAll = !m.help.ShowAll
 		}
 	}
 
@@ -249,6 +317,7 @@ func (m chooseModel) View() string {
 
 	s.WriteString(strings.Repeat("\n", m.height-m.paginator.ItemsOnPage(len(m.items))+1))
 	s.WriteString("  " + m.paginator.View())
+	s.WriteString("\n" + m.help.View(m.keys))
 
 	return s.String()
 }
