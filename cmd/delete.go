@@ -39,8 +39,8 @@ var deleteCmd = &cobra.Command{
 		var deleteIds []string
 		for _, hook := range hooksToDelete {
 			_, withoutPrefix, _ := strings.Cut(hook, " ")
-			id, _, _ := strings.Cut(withoutPrefix, " ")
-			deleteIds = append(deleteIds, id)
+			delId, _, _ := strings.Cut(withoutPrefix, " ")
+			deleteIds = append(deleteIds, delId)
 		}
 
 		return deleteHooks(repo, deleteIds)
