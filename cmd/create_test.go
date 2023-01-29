@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/cli/go-gh/pkg/config"
 	"github.com/cli/go-gh/pkg/repository"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/h2non/gock.v1"
@@ -22,7 +23,7 @@ func Test_createHook(t *testing.T) {
 			repo: MockRepo{
 				host:  "github.com",
 				name:  "test-repo",
-				owner: "lucasmelin",
+				owner: "user1",
 			},
 			data: Hook{
 				Id:     12345678,
@@ -37,7 +38,7 @@ func Test_createHook(t *testing.T) {
 			},
 			httpMocks: func() {
 				gock.New("https://api.github.com").
-					Post("repos/lucasmelin/test-repo/hooks").
+					Post("repos/user1/test-repo/hooks").
 					BodyString(`{
   "id":12345678,
   "name":"web",
@@ -69,10 +70,10 @@ func Test_createHook(t *testing.T) {
   },
   "updated_at": "2019-06-03T00:57:16Z",
   "created_at": "2019-06-03T00:57:16Z",
-  "url": "https://api.github.com/repos/octocat/Hello-World/hooks/12345678",
-  "test_url": "https://api.github.com/repos/octocat/Hello-World/hooks/12345678/test",
-  "ping_url": "https://api.github.com/repos/octocat/Hello-World/hooks/12345678/pings",
-  "deliveries_url": "https://api.github.com/repos/octocat/Hello-World/hooks/12345678/deliveries",
+  "url": "https://api.github.com/repos/user1/test-repo/hooks/12345678",
+  "test_url": "https://api.github.com/repos/user1/test-repo/hooks/12345678/test",
+  "ping_url": "https://api.github.com/repos/user1/test-repo/hooks/12345678/pings",
+  "deliveries_url": "https://api.github.com/repos/user1/test-repo/hooks/12345678/deliveries",
   "last_response": {
     "code": null,
     "status": "unused",
@@ -84,6 +85,7 @@ func Test_createHook(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			stubConfig(t, testConfig())
 			t.Cleanup(gock.Off)
 			if tt.httpMocks != nil {
 				tt.httpMocks()
@@ -152,6 +154,7 @@ func Test_getEvents(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			stubConfig(t, testConfig())
 			t.Cleanup(gock.Off)
 			if tt.httpMocks != nil {
 				tt.httpMocks()
@@ -166,4 +169,24 @@ func Test_getEvents(t *testing.T) {
 			assert.Equalf(t, tt.want, got, "getEvents(%v)", tt.refresh)
 		})
 	}
+}
+
+func stubConfig(t *testing.T, cfgStr string) {
+	t.Helper()
+	old := config.Read
+	config.Read = func() (*config.Config, error) {
+		return config.ReadFromString(cfgStr), nil
+	}
+	t.Cleanup(func() {
+		config.Read = old
+	})
+}
+
+func testConfig() string {
+	return `
+hosts:
+  github.com:
+    user: user1
+    oauth_token: abc123
+`
 }

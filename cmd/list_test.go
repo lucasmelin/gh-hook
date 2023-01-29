@@ -126,6 +126,7 @@ func Test_getWebhooks(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			stubConfig(t, testConfig())
 			t.Cleanup(gock.Off)
 			if tt.httpMocks != nil {
 				tt.httpMocks()
