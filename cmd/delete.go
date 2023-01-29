@@ -20,17 +20,9 @@ var deleteCmd = &cobra.Command{
 	Short: "Delete repository webhooks.",
 	Long:  ``,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		var repo repository.Repository
-		var err error
-
-		repoOverride, _ := cmd.Flags().GetString("repo")
-		if repoOverride != "" {
-			repo, err = repository.Parse(repoOverride)
-		} else {
-			repo, err = gh.CurrentRepository()
-		}
+		repo, err := getRepo(cmd)
 		if err != nil {
-			return fmt.Errorf("could not determine the repo to use: %w\n", err)
+			return err
 		}
 
 		response, err := getWebhooks(repo)
@@ -71,5 +63,6 @@ func deleteHooks(repo repository.Repository, deleteIds []string) error {
 			return err
 		}
 	}
+	fmt.Printf("Deleted %d hooks 🗑️\n", len(deleteIds))
 	return nil
 }

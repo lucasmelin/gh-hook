@@ -42,8 +42,7 @@ func Test_deleteHooks(t *testing.T) {
 			}
 			err := deleteHooks(tt.repo, tt.deleteIds)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("deleteHooks(%v, %v) error = %v, wantErr %v", tt.repo, tt.deleteIds, err, tt.wantErr)
-				return
+				t.Fatalf("deleteHooks(%v, %v) error = %v, wantErr %v", tt.repo, tt.deleteIds, err, tt.wantErr)
 			}
 			assert.True(t, gock.IsDone(), printPendingMocks(gock.Pending()))
 		})

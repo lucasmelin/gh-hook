@@ -135,8 +135,7 @@ func Test_getWebhooks(t *testing.T) {
 			}
 			got, err := getWebhooks(tt.repo)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("getWebhooks() error = %v, wantErr %v", err, tt.wantErr)
-				return
+				t.Fatalf("getWebhooks() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("getWebhooks() got = %+v, want %+v", got, tt.want)
@@ -152,4 +151,95 @@ func printPendingMocks(mocks []gock.Mock) string {
 		paths = append(paths, mock.Request().URLStruct.String())
 	}
 	return fmt.Sprintf("%d unmatched mocks: %s", len(paths), strings.Join(paths, ", "))
+}
+
+func Test_formatHookChoices(t *testing.T) {
+
+	tests := []struct {
+		name         string
+		currentHooks []Hook
+		want         []string
+	}{
+		{
+			name: "single active hook",
+			currentHooks: []Hook{
+				{
+					Id:     12345678,
+					Name:   "web",
+					Active: true,
+					Events: []string{"push"},
+					Config: HookConfig{
+						Url:         "https://example.com",
+						ContentType: "json",
+						InsecureSSL: "0",
+						Secret:      "supersecretvalue",
+					},
+				},
+			},
+			want: []string{
+				"✓ 12345678 - https://example.com (push)",
+			},
+		},
+		{
+			name: "multiple hooks",
+			currentHooks: []Hook{
+				{
+					Id:     12345678,
+					Name:   "web",
+					Active: false,
+					Events: []string{"push"},
+					Config: HookConfig{
+						Url:         "https://example.com",
+						ContentType: "json",
+						InsecureSSL: "0",
+						Secret:      "supersecretvalue",
+					},
+				},
+				{
+					Id:     4444333,
+					Name:   "web",
+					Active: true,
+					Events: []string{"pull_request"},
+					Config: HookConfig{
+						Url:         "https://github.com/webhook",
+						ContentType: "form",
+						InsecureSSL: "1",
+						Secret:      "differentsecretvalue",
+					},
+				},
+			},
+			want: []string{
+				"• 12345678 - https://example.com (push)",
+				"✓ 4444333 - https://github.com/webhook (pull_request)",
+			},
+		},
+		{
+			name: "truncate multiple events hooks",
+			currentHooks: []Hook{
+				{
+					Id:     12345678,
+					Name:   "web",
+					Active: false,
+					Events: []string{"push", "pull_request", "issue_comment", "fork"},
+					Config: HookConfig{
+						Url:         "https://example.com",
+						ContentType: "json",
+						InsecureSSL: "0",
+						Secret:      "supersecretvalue",
+					},
+				},
+			},
+			want: []string{
+				"• 12345678 - https://example.com (push, pull_request, iss…)",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := formatHookChoices(tt.currentHooks)
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("formatHookChoices() got = %+v, want %+v", got, tt.want)
+			}
+		})
+	}
 }

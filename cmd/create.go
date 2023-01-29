@@ -14,87 +14,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type Event struct {
-	Name string `json:"name"`
-}
-
-type Hook struct {
-	Id     int        `json:"id,omitempty"`
-	Name   string     `json:"name,omitempty"`
-	Active bool       `json:"active,omitempty"`
-	Events []string   `json:"events,omitempty"`
-	Config HookConfig `json:"config,omitempty"`
-}
-
-type HookConfig struct {
-	Url         string `json:"url,omitempty"`
-	ContentType string `json:"content_type,omitempty"`
-	InsecureSSL string `json:"insecure_ssl,omitempty"`
-	Secret      string `json:"secret,omitempty"`
-}
-
-// Some events are not available for repositories.
-// See: https://docs.github.com/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#installation_repositories
-var knownEvents = []string{
-	"branch_protection_rule",
-	"check_run",
-	"check_suite",
-	"code_scanning_alert",
-	"commit_comment",
-	"create",
-	"delete",
-	"dependabot_alert",
-	"deploy_key",
-	"deployment",
-	"deployment_status",
-	"discussion",
-	"discussion_comment",
-	"fork",
-	// "github_app_authorization", Not available for repositories.
-	"gollum",
-	// "installation", Not available for repositories.
-	// "installation_repositories", Not available for repositories.
-	"issue_comment",
-	"issues",
-	"label",
-	// "marketplace_purchase", Not available for repositories.
-	"member",
-	// "membership", Not available for repositories.
-	// "merge_group", Not available for repositories.
-	"meta",
-	"milestone",
-	// "organization", Not available for repositories.
-	// "org_block", Not available for repositories.
-	"package",
-	"page_build",
-	"ping",
-	"project",
-	"project_card",
-	"project_column",
-	// "projects_v2_item", Not available for repositories.
-	"public",
-	"pull_request",
-	"pull_request_review",
-	"pull_request_review_comment",
-	"pull_request_review_thread",
-	"push",
-	"release",
-	// "repository_dispatch", Not available for repositories.
-	"repository",
-	"repository_import",
-	"repository_vulnerability_alert",
-	// "security_advisory", Not available for repositories.
-	// "sponsorship", Not available for repositories.
-	"star",
-	"status",
-	// "team", Not available for repositories.
-	"team_add",
-	"watch",
-	// "workflow_dispatch", Not available for repositories.
-	"workflow_job",
-	"workflow_run",
-}
-
 func init() {
 	createCmd.Flags().Bool("refresh-events", false, "Download the list of events from octokit.github.io/webhooks/. By default, a hardcoded list of known events will be used.")
 	rootCmd.AddCommand(createCmd)
@@ -106,23 +25,16 @@ var createCmd = &cobra.Command{
 	Long:         ``,
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		var repo repository.Repository
-		var err error
-
-		repoOverride, _ := cmd.Flags().GetString("repo")
-		if repoOverride != "" {
-			repo, err = repository.Parse(repoOverride)
-		} else {
-			repo, err = gh.CurrentRepository()
-		}
+		repo, err := getRepo(cmd)
 		if err != nil {
-			return fmt.Errorf("could not determine the repo to use: %w\n", err)
+			return err
 		}
 
 		fmt.Printf("Creating new webhook for %s\n", repo.Name())
+
 		hookUrl, err := tui.Input(false, "Webhook URL: ")
 		if err != nil {
-			return fmt.Errorf("error entering webhook URL: %w\n", err)
+			return fmt.Errorf("error getting webhook URL: %w\n", err)
 		}
 
 		refreshEvents, _ := cmd.Flags().GetBool("refresh-events")
@@ -130,6 +42,7 @@ var createCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("error getting events: %w\n", err)
 		}
+
 		hookEvents, err := tui.Choose("Events to receive", events, 0)
 		if err != nil {
 			return fmt.Errorf("error choosing events: %w\n", err)
@@ -150,6 +63,9 @@ var createCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("error choosing insecure SSL option: %w\n", err)
 		}
+		if len(sslChoice) == 0 {
+			return fmt.Errorf("no SSL choice selected")
+		}
 		var ssl string
 		if sslChoice[0] == "true" {
 			ssl = "1"
@@ -159,6 +75,9 @@ var createCmd = &cobra.Command{
 		activeChoice, err := tui.Choose("Webhook Active", []string{"true", "false"}, 1)
 		if err != nil {
 			return fmt.Errorf("error choosing webhook active option: %w\n", err)
+		}
+		if len(activeChoice) == 0 {
+			return fmt.Errorf("no active choice selected")
 		}
 		active := false
 		if activeChoice[0] == "true" {
@@ -180,7 +99,7 @@ var createCmd = &cobra.Command{
 		if err := createHook(repo, value); err != nil {
 			return err
 		}
-		fmt.Println("successfully created hook")
+		fmt.Println("Successfully created hook 🪝")
 		return nil
 	},
 }

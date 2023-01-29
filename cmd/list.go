@@ -20,17 +20,9 @@ var listCmd = &cobra.Command{
 	Short: "List all repository webhooks.",
 	Long:  ``,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		var repo repository.Repository
-		var err error
-
-		repoOverride, _ := cmd.Flags().GetString("repo")
-		if repoOverride != "" {
-			repo, err = repository.Parse(repoOverride)
-		} else {
-			repo, err = gh.CurrentRepository()
-		}
+		repo, err := getRepo(cmd)
 		if err != nil {
-			return fmt.Errorf("could not determine the repo to use: %w\n", err)
+			return err
 		}
 
 		currentHooks, err := getWebhooks(repo)
