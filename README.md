@@ -1,10 +1,18 @@
-# gh-hook
+<h1 align="center"> gh-hook </h1>
 
+<p align="center">
 🪝 A GitHub CLI extension to easily manage your repository webhooks.
+<br/>
+</p>
 
 ## ✨ Features
 - Create a repository webhook
 - Delete one or more repository webhooks
+- List all repository webhooks
+
+## 📼 Demo
+
+![gh-hook demo](vhs-tapes/demo.gif)
 
 ## 📦️ Installation
 
@@ -16,7 +24,7 @@
 
 ## 🧑‍💻 Usage
 
-Run using `gh hook`.
+Run using `gh hook`. Run `gh hook --help` for more info.
 
 ## Development
 
