@@ -10,9 +10,10 @@ import (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "hook",
-	Short: "Hook makes it easy to manage your repository webhooks.",
-	Long:  ``,
+	Use:               "hook",
+	Short:             "Hook makes it easy to manage your repository webhooks.",
+	Long:              ``,
+	CompletionOptions: cobra.CompletionOptions{DisableDefaultCmd: true},
 	Run: func(cmd *cobra.Command, args []string) {
 		_ = cmd.Help()
 	},
