@@ -20,10 +20,17 @@ var rootCmd = &cobra.Command{
 }
 
 func Execute() {
+	addCommandsToRoot()
 	rootCmd.PersistentFlags().String("repo", "", "Specify a repository. If omitted, uses the current repository.")
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}
+}
+
+func addCommandsToRoot() {
+	rootCmd.AddCommand(NewCmdCreate())
+	rootCmd.AddCommand(NewCmdDelete())
+	rootCmd.AddCommand(NewCmdList())
 }
 
 func getRepo(cmd *cobra.Command) (repository.Repository, error) {

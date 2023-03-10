@@ -1,5 +1,5 @@
 Set Theme "Catppuccin Mocha"
-Set FontFamily "JetBrainsMono Nerd Font"
+Set FontFamily "Berkeley Mono"
 Set PlaybackSpeed 1
 Set FontSize 20
 Set Width 1200

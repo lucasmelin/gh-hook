@@ -1,7 +1,9 @@
 package cmd
 
 import (
+	"io"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/cli/go-gh/pkg/config"
@@ -189,4 +191,51 @@ hosts:
     user: user1
     oauth_token: abc123
 `
+}
+
+func Test_hookFromInput(t *testing.T) {
+	tests := []struct {
+		name    string
+		data    io.Reader
+		want    Hook
+		wantErr bool
+	}{
+		{
+			name: "basic",
+			data: strings.NewReader(`{
+  "active": true,
+  "events": [
+    "push",
+    "pull_request"
+  ],
+  "config": {
+    "url": "https://example.com",
+    "content_type": "json",
+    "insecure_ssl": "0",
+    "secret": "somesecretpassphrase"
+  }
+}`),
+			want: Hook{
+				Id:     0,
+				Name:   "",
+				Active: true,
+				Events: []string{"push", "pull_request"},
+				Config: HookConfig{
+					Url:         "https://example.com",
+					ContentType: "json",
+					InsecureSSL: "0",
+					Secret:      "somesecretpassphrase",
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := hookFromInput(tt.data)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("getEvents() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			assert.Equalf(t, tt.want, got, "hookFromInput(%v)", tt.data)
+		})
+	}
 }

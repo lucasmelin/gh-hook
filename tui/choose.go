@@ -91,7 +91,29 @@ var keys = keyMap{
 	),
 }
 
-func Choose(title string, options []string, limit int) ([]string, error) {
+func ChooseMany(title string, options []string) ([]string, error) {
+	choice, err := choose(title, options, 0)
+	if err != nil {
+		return choice, err
+	}
+	if len(choice) == 0 {
+		return choice, fmt.Errorf("no options were selected")
+	}
+	return choice, err
+}
+
+func ChooseOne(title string, options []string) (string, error) {
+	choice, err := choose(title, options, 1)
+	if err != nil {
+		return "", err
+	}
+	if len(choice) == 0 {
+		return "", fmt.Errorf("no option was selected")
+	}
+	return choice[0], err
+}
+
+func choose(title string, options []string, limit int) ([]string, error) {
 	if limit == 0 {
 		limit = len(options)
 	}

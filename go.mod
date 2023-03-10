@@ -6,7 +6,7 @@ require (
 	github.com/charmbracelet/bubbles v0.15.0
 	github.com/charmbracelet/bubbletea v0.23.1
 	github.com/charmbracelet/lipgloss v0.6.0
-	github.com/cli/go-gh v1.0.0
+	github.com/cli/go-gh v1.2.1
 	github.com/mattn/go-runewidth v0.0.14
 	github.com/spf13/cobra v1.6.1
 	github.com/stretchr/testify v1.7.0

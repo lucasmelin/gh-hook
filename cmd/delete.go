@@ -11,46 +11,41 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func init() {
-	rootCmd.AddCommand(deleteCmd)
-}
+func NewCmdDelete() *cobra.Command {
+	var deleteCmd = &cobra.Command{
+		Use:   "delete",
+		Short: "Delete repository webhooks.",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			repo, err := getRepo(cmd)
+			if err != nil {
+				return err
+			}
 
-var deleteCmd = &cobra.Command{
-	Use:   "delete",
-	Short: "Delete repository webhooks.",
-	Long:  ``,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		repo, err := getRepo(cmd)
-		if err != nil {
-			return err
-		}
+			response, err := getWebhooks(repo)
+			if err != nil {
+				return fmt.Errorf("could not get webhooks: %w\n", err)
+			}
+			choices := formatHookChoices(response)
+			if len(choices) == 0 {
+				fmt.Printf("%s/%s has no webhooks\n", repo.Owner(), repo.Name())
+				return nil
+			}
 
-		response, err := getWebhooks(repo)
-		if err != nil {
-			return fmt.Errorf("could not get webhooks: %w\n", err)
-		}
-		choices := formatHookChoices(response)
-		if len(choices) == 0 {
-			fmt.Printf("%s/%s has no webhooks\n", repo.Owner(), repo.Name())
-			return nil
-		}
+			hooksToDelete, err := tui.ChooseMany("Which webhooks would you like to delete?", choices)
+			if err != nil {
+				return fmt.Errorf("could not choose webhooks: %w", err)
+			}
+			var deleteIds []string
+			for _, hook := range hooksToDelete {
+				_, withoutPrefix, _ := strings.Cut(hook, " ")
+				delId, _, _ := strings.Cut(withoutPrefix, " ")
+				deleteIds = append(deleteIds, delId)
+			}
 
-		hooksToDelete, err := tui.Choose("Which webhooks would you like to delete?", choices, 0)
-		if err != nil {
-			return fmt.Errorf("could not choose webhooks: %w", err)
-		}
-		if len(hooksToDelete) == 0 {
-			fmt.Printf("No webhooks were selected for deletion\n")
-		}
-		var deleteIds []string
-		for _, hook := range hooksToDelete {
-			_, withoutPrefix, _ := strings.Cut(hook, " ")
-			delId, _, _ := strings.Cut(withoutPrefix, " ")
-			deleteIds = append(deleteIds, delId)
-		}
-
-		return deleteHooks(repo, deleteIds)
-	},
+			return deleteHooks(repo, deleteIds)
+		},
+	}
+	return deleteCmd
 }
 
 func deleteHooks(repo repository.Repository, deleteIds []string) error {

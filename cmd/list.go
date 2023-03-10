@@ -11,35 +11,33 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func init() {
-	rootCmd.AddCommand(listCmd)
-}
+func NewCmdList() *cobra.Command {
+	var listCmd = &cobra.Command{
+		Use:   "list",
+		Short: "List all repository webhooks.",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			repo, err := getRepo(cmd)
+			if err != nil {
+				return err
+			}
 
-var listCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List all repository webhooks.",
-	Long:  ``,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		repo, err := getRepo(cmd)
-		if err != nil {
-			return err
-		}
+			currentHooks, err := getWebhooks(repo)
+			if err != nil {
+				return fmt.Errorf("could not get webhooks: %w\n", err)
+			}
+			choices := formatHookChoices(currentHooks)
+			if len(choices) == 0 {
+				fmt.Printf("%s/%s has no webhooks\n", repo.Owner(), repo.Name())
+				return nil
+			}
+			for _, hook := range choices {
+				fmt.Println(hook)
+			}
 
-		currentHooks, err := getWebhooks(repo)
-		if err != nil {
-			return fmt.Errorf("could not get webhooks: %w\n", err)
-		}
-		choices := formatHookChoices(currentHooks)
-		if len(choices) == 0 {
-			fmt.Printf("%s/%s has no webhooks\n", repo.Owner(), repo.Name())
 			return nil
-		}
-		for _, hook := range choices {
-			fmt.Println(hook)
-		}
-
-		return nil
-	},
+		},
+	}
+	return listCmd
 }
 
 func formatHookChoices(currentHooks []Hook) []string {
